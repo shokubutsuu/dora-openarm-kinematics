@@ -37,6 +37,11 @@ dev = [
   "ruff==0.14.11", # sync with .pre-commit-config.yaml
 ]
 
+[project.urls]
+Changelog = "https://github.com/enactic/dora-openarm-kinematics/releases"
+Issues = "https://github.com/enactic/dora-openarm-kinematics/issues"
+Repository = "https://github.com/enactic/dora-openarm-kinematics"
+
 [project.scripts]
 dora-openarm-fk = "dora_openarm_fk:main"
 dora-openarm-ik = "dora_openarm_ik:main"
