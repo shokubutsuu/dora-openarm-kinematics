@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""dora-rs node for forward kinematics on OpenArm."""
+"""dora-rs nodes for inverse and forward kinematics on OpenArm."""
 
 import os
 
