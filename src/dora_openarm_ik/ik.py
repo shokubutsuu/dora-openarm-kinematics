@@ -49,7 +49,7 @@ from openarm_control import (
 
 
 def _map_trigger_to_gripper(trigger: float, side: str) -> float:
-    """trigger 0.0~1.0 → gripper angle"""
+    """Trigger 0.0~1.0 → gripper angle."""
     if side == "right":
         return (-1.57 / 2.0) * (1.0 - trigger)  # 0→-1.57, 1→0
     else:
@@ -114,6 +114,7 @@ def _run(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Inverse kinematics for OpenArm."""
     parser = argparse.ArgumentParser(
         description="Mink IK dora node – OpenArm end-effector pose → joint angles"
     )

@@ -93,9 +93,14 @@ def _run(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
+    """Forward kinematics for OpenArm."""
     parser = argparse.ArgumentParser(
         description="FK dora node – OpenArm end-effector poses from joint angles"
     )
     register_common_args(parser)
     args = parser.parse_args()
     _run(args)
+
+
+if __name__ == "__main__":
+    main()

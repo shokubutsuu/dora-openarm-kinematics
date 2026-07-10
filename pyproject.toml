@@ -31,6 +31,12 @@ dependencies = [
     "pyarrow",
 ]
 
+[dependency-groups]
+dev = [
+  "dora-rs-cli>=0.5.0",
+  "ruff==0.14.11", # sync with .pre-commit-config.yaml
+]
+
 [project.scripts]
 dora-openarm-fk = "dora_openarm_fk:main"
 dora-openarm-ik = "dora_openarm_ik:main"
@@ -40,3 +46,9 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff.lint]
+extend-select = [
+  "D",   # pydocstyle
+  "UP"
+]
