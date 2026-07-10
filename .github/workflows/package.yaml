@@ -18,6 +18,8 @@ on:
     branches-ignore:
       - 'copilot/**'
       - 'dependabot/**'
+    tags:
+      - '**'
   pull_request:
 concurrency:
   group: ${{ github.head_ref || github.sha }}-${{ github.workflow }}
