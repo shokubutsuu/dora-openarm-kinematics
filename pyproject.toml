@@ -20,7 +20,7 @@ build-backend = "setuptools.build_meta"
 name = "dora-openarm-kinematics"
 version = "0.2.0"
 authors = [{name = "Enactic, Inc."}]
-description = "MuJoCo Description Files (MJCF) for OpenArm"
+description = "dora-rs nodes for forward and inverse kinematics on OpenArm"
 license = {text = "Apache-2.0"}
 maintainers = [{name = "Enactic, Inc."}]
 readme = "README.md"
