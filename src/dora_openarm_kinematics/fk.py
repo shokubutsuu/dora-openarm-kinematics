@@ -18,12 +18,13 @@ Receives per-arm 8-value joint position arrays and publishes the
 end-effector pose for the arm that was updated.
 
 Inputs:
-  position_right – float32[8]  right arm joints 1–7 + gripper
-  position_left  – float32[8]  left  arm joints 1–7 + gripper
+  position_right – [{"qpos": float32[8]}]  right arm joints 1–7 + gripper
+  position_left  – [{"qpos": float32[8]}]  left  arm joints 1–7 + gripper
+  Flat float32 arrays are also accepted.
 
 Outputs:
-  pose_right – float32[7]  [px, py, pz, qw, qx, qy, qz]
-  pose_left  – float32[7]  [px, py, pz, qw, qx, qy, qz]
+  pose_right – [{"pose": float32[8]}]  [px, py, pz, qw, qx, qy, qz, gripper_value]
+  pose_left  – [{"pose": float32[8]}]  [px, py, pz, qw, qx, qy, qz, gripper_value]
   status     – ["ready"] on startup
 """
 
@@ -35,6 +36,20 @@ import numpy as np
 import pyarrow as pa
 
 from openarm_control import Kinematics, register_common_args, setup_from_args
+
+_POSE_STRUCT_TYPE = pa.struct({"pose": pa.list_(pa.float32())})
+
+
+def build_pose_output(pose: np.ndarray) -> pa.Array:
+    """Wrap a pose array as a length-1 StructArray: [{"pose": [...]}]."""
+    return pa.array([{"pose": pose}], type=_POSE_STRUCT_TYPE)
+
+
+def extract_values(value: pa.Array, key: str) -> np.ndarray:
+    """Read `key` from a length-1 StructArray, or a flat array as-is."""
+    if pa.types.is_struct(value.type):
+        value = value.field(key)[0].values
+    return np.array(value, dtype=np.float32)
 
 
 def _run(args: argparse.Namespace) -> None:
@@ -52,7 +67,7 @@ def _run(args: argparse.Namespace) -> None:
 
         eid = event["id"]
         if eid == "position_right" and "right" in kin.setup.sides:
-            values = np.array(event["value"], dtype=np.float32)
+            values = extract_values(event["value"], "qpos")
             if values.shape != (8,):
                 print(
                     f"Warning: expected position_right[8], got {values.shape}. Skipping."
@@ -60,14 +75,17 @@ def _run(args: argparse.Namespace) -> None:
                 continue
             t0 = time.perf_counter()
             pose = kin.fk("right", values)
+            gripper_value = values[7]  # last value is gripper
             node.send_output(
                 "pose_right",
-                pa.array(pose, type=pa.float32()),
+                build_pose_output(
+                    np.concatenate([pose, np.array([gripper_value], dtype=np.float32)])
+                ),
                 {"timestamp": time.time_ns()},
             )
 
         elif eid == "position_left" and "left" in kin.setup.sides:
-            values = np.array(event["value"], dtype=np.float32)
+            values = extract_values(event["value"], "qpos")
             if values.shape != (8,):
                 print(
                     f"Warning: expected position_left[8], got {values.shape}. Skipping."
@@ -75,9 +93,12 @@ def _run(args: argparse.Namespace) -> None:
                 continue
             t0 = time.perf_counter()
             pose = kin.fk("left", values)
+            gripper_value = values[7]  # last value is gripper
             node.send_output(
                 "pose_left",
-                pa.array(pose, type=pa.float32()),
+                build_pose_output(
+                    np.concatenate([pose, np.array([gripper_value], dtype=np.float32)])
+                ),
                 {"timestamp": time.time_ns()},
             )
 

@@ -19,8 +19,8 @@ Converts per-arm joint angles to end-effector poses via `mj_forward`.
 
 | | |
 |---|---|
-| **Inputs** | `position_right` `float32[8]`, `position_left` `float32[8]` — joints 1–7 + gripper |
-| **Outputs** | `pose_right` `float32[7]`, `pose_left` `float32[7]` — `[px, py, pz, qw, qx, qy, qz]` |
+| **Inputs** | `position_right`, `position_left` `[{"qpos": float32[8]}]` — joints 1–7 + gripper (flat `float32[8]` also accepted) |
+| **Outputs** | `pose_right`, `pose_left` `[{"pose": float32[8]}]` — `[px, py, pz, qw, qx, qy, qz, gripper_value]` |
 
 ```
 --mode           right | left | bimanual  (default: bimanual)
@@ -39,8 +39,8 @@ Solves joint angles from EE pose targets using mink's QP-based differential IK. 
 
 | | |
 |---|---|
-| **Inputs** | `target_right` `float32[7]`, `target_left` `float32[7]` — EE pose targets; `position` `float32[16]` — optional joint-state sync; `trigger_right` / `trigger_left` `float32[1]` — gripper pass-through |
-| **Outputs** | `position_right` `float32[8]`, `position_left` `float32[8]` |
+| **Inputs** | `target_right`, `target_left` `[{"pose": float32[7]}]` — EE pose targets; `position` `[{"qpos": float32[16]}]` — optional joint-state sync (flat arrays also accepted); `trigger_right` / `trigger_left` `float32[1]` — gripper pass-through |
+| **Outputs** | `position_right`, `position_left` `[{"qpos": float32[8]}]` |
 
 ```
 --mode           right | left | bimanual  (default: bimanual)

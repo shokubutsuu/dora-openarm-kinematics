@@ -18,15 +18,17 @@ Accepts end-effector pose targets and solves joint angles via mink's QP-based
 differential IK. Both arms share one mink.Configuration and one QP solve per
 step.
 
-Pose convention (inputs and outputs):  float32[7] = [px, py, pz, qw, qx, qy, qz]
+Pose convention:  float32[8] = [px, py, pz, qw, qx, qy, qz, gripper_angle]
 Inputs:
-  target_right – float32[7]  right EE target pose
-  target_left  – float32[7]  left  EE target pose
-  position     – float32[16] current joint state right[8]+left[8] (optional sync)
+  target_right – [{"pose": float32[8]}]  right EE target pose + gripper angle
+  target_left  – [{"pose": float32[8]}]  left  EE target pose + gripper angle
+  position     – [{"qpos": float32[16]}] current joint state right[8]+left[8]
+                 (optional sync)
+  Flat float32 arrays are also accepted for all inputs.
 
 Outputs:
-  position_right – float32[8] solved right arm joint angles
-  position_left  – float32[8] solved left arm joint angles
+  position_right – [{"qpos": float32[8]}] solved right arm joint angles
+  position_left  – [{"qpos": float32[8]}] solved left arm joint angles
   status         – ["ready"] on startup
 """
 
@@ -48,12 +50,19 @@ from openarm_control import (
 )
 
 
-def _map_trigger_to_gripper(trigger: float, side: str) -> float:
-    """Trigger 0.0~1.0 → gripper angle."""
-    if side == "right":
-        return (-1.57 / 2.0) * (1.0 - trigger)  # 0→-1.57, 1→0
-    else:
-        return (1.57 / 2.0) * (1.0 - trigger)  # 0→ 1.57, 1→0
+_QPOS_STRUCT_TYPE = pa.struct({"qpos": pa.list_(pa.float32())})
+
+
+def build_qpos_output(qpos: np.ndarray) -> pa.Array:
+    """Wrap joint angles as a length-1 StructArray: [{"qpos": [...]}]."""
+    return pa.array([{"qpos": qpos}], type=_QPOS_STRUCT_TYPE)
+
+
+def extract_values(value: pa.Array, key: str) -> np.ndarray:
+    """Read `key` from a length-1 StructArray, or a flat array as-is."""
+    if pa.types.is_struct(value.type):
+        value = value.field(key)[0].values
+    return np.array(value, dtype=np.float32)
 
 
 def _run(args: argparse.Namespace) -> None:
@@ -67,36 +76,36 @@ def _run(args: argparse.Namespace) -> None:
             continue
 
         eid = event["id"]
-        values = np.array(event["value"], dtype=np.float32)
 
         if eid == "position":
+            values = extract_values(event["value"], "qpos")
             if values.shape == (16,):
                 kin.sync(values)
             continue
 
         if eid == "target_right" and "right" in kin.setup.sides:
-            if values.shape != (7,):
+            values = extract_values(event["value"], "pose")
+            if values.shape != (8,):
                 print(
-                    f"Warning: expected target_right[7], got {values.shape}. Skipping."
+                    f"Warning: expected target_right[8], got {values.shape}. Skipping."
                 )
                 continue
-            kin.set_target("right", values)
+            pose = values[:7]
+            gripper_angle = values[7]
+            kin.set_target("right", pose)
+            kin.set_gripper("right", gripper_angle)
 
         elif eid == "target_left" and "left" in kin.setup.sides:
-            if values.shape != (7,):
+            values = extract_values(event["value"], "pose")
+            if values.shape != (8,):
                 print(
-                    f"Warning: expected target_left[7], got {values.shape}. Skipping."
+                    f"Warning: expected target_left[8], got {values.shape}. Skipping."
                 )
                 continue
-            kin.set_target("left", values)
-
-        elif eid == "trigger_right":
-            kin.set_gripper("right", _map_trigger_to_gripper(float(values[0]), "right"))
-            continue
-
-        elif eid == "trigger_left":
-            kin.set_gripper("left", _map_trigger_to_gripper(float(values[0]), "left"))
-            continue
+            pose = values[:7]
+            gripper_angle = values[7]
+            kin.set_target("left", pose)
+            kin.set_gripper("left", gripper_angle)
 
         else:
             continue
@@ -109,8 +118,8 @@ def _run(args: argparse.Namespace) -> None:
             continue
 
         ts = {"timestamp": time.time_ns()}
-        node.send_output("position_right", pa.array(result[:8], type=pa.float32()), ts)
-        node.send_output("position_left", pa.array(result[8:16], type=pa.float32()), ts)
+        node.send_output("position_right", build_qpos_output(result[:8]), ts)
+        node.send_output("position_left", build_qpos_output(result[8:16]), ts)
 
 
 def main() -> None:
