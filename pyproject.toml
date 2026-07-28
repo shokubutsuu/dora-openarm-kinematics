@@ -18,7 +18,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dora-openarm-kinematics"
-version = "0.2.0"
+version = "0.2.1"
 authors = [{name = "Enactic, Inc."}]
 description = "dora-rs nodes for forward and inverse kinematics on OpenArm"
 license = {text = "Apache-2.0"}
