@@ -39,7 +39,6 @@ nodes:
   - id: fk   # ── forward kinematics: joint angles → EE poses ─────────────────
     build: pip install -e ..
     path: dora-openarm-fk
-    args: "--mode bimanual"
     inputs:
       position_right: leader/follower_position_right
       position_left:  leader/follower_position_left
@@ -51,7 +50,8 @@ nodes:
   - id: ik   # ── differential IK: EE poses → joint angles ────────────────────
     build: pip install -e ..
     path: dora-openarm-ik
-    args: "--mode bimanual --max-iters 5 --dt 0.1 --damping 0.25 --posture-cost 0.01 --lm-damping 0.01"
+    # Match the upstream 4 ms timer; solver tuning uses control defaults.
+    args: "--tick-hz 250 --limit-velocity"
     inputs:
       target_right: fk/pose_right
       target_left:  fk/pose_left
